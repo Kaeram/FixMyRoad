@@ -91,7 +91,8 @@ async def submit_report(
                 )
             
             # In a real implementation, upload to storage and get URL
-            # For MVP, we'll simulate this
+            # For MVP, we simulate this with a placeholder
+            # TODO: Implement actual image upload to Supabase Storage or S3
             image_url = f"https://storage.example.com/potholes/{image.filename}"
         except HTTPException:
             raise

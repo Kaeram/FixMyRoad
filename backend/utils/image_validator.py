@@ -18,7 +18,7 @@ def validate_image_format(image_data: bytes) -> Tuple[bool, str]:
         image = Image.open(io.BytesIO(image_data))
         
         # Check if it's a valid image format
-        if image.format not in ['JPEG', 'JPG', 'PNG']:
+        if image.format not in ['JPEG', 'PNG']:
             return False, "Invalid image format. Only JPEG and PNG are supported."
         
         # Check image dimensions (should be reasonable)

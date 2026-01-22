@@ -97,13 +97,27 @@ class PotholeService:
         """
         radius = 0.01  # Approx 1km in degrees
         
-        # Query reports in the area (within radius)
-        result = self.supabase.table(self.table_name).select("*").execute()
+        # Query reports in the area with bounding box filter for efficiency
+        # This reduces the dataset before calculating exact distances
+        lat_min = latitude - radius
+        lat_max = latitude + radius
+        lon_min = longitude - radius
+        lon_max = longitude + radius
+        
+        result = self.supabase.table(self.table_name).select("latitude,longitude").gte(
+            "latitude", lat_min
+        ).lte(
+            "latitude", lat_max
+        ).gte(
+            "longitude", lon_min
+        ).lte(
+            "longitude", lon_max
+        ).execute()
         
         if not result.data:
             return TicketPriority.LOW
         
-        # Count reports in the area
+        # Count reports in the area (within radius)
         nearby_count = 0
         for report in result.data:
             distance = self._calculate_distance(
@@ -125,11 +139,26 @@ class PotholeService:
     
     @staticmethod
     def _calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        """Calculate approximate distance between two coordinates.
+        """Calculate approximate distance between two coordinates using Haversine formula.
         
-        Simple Euclidean distance for small distances.
+        Returns distance in degrees (approx. 111km per degree at equator).
+        For more accurate distance, multiply by 111 to get km.
         """
-        return math.sqrt((lat2 - lat1) ** 2 + (lon2 - lon1) ** 2)
+        import math
+        
+        # Simple Haversine approximation for small distances
+        # Convert to radians
+        lat1_rad = math.radians(lat1)
+        lat2_rad = math.radians(lat2)
+        delta_lat = math.radians(lat2 - lat1)
+        delta_lon = math.radians(lon2 - lon1)
+        
+        # Haversine formula
+        a = math.sin(delta_lat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+        c = 2 * math.asin(math.sqrt(a))
+        
+        # Return in degrees for comparison with radius (approx 111km per degree)
+        return c * 180 / math.pi
     
     async def get_report_by_ticket_id(self, ticket_id: str) -> Optional[PotholeReportResponse]:
         """Get a report by ticket ID.
